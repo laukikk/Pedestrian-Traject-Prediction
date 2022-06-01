@@ -1,0 +1,15 @@
+{
+    "datasets": {
+        "seq_hotel": "datasets/ewap_dataset/seq_hotel",
+        "seq_eth": "datasets/ewap_dataset/seq_eth",
+        "dataset": "datasets/ewap_dataset/seq_hotel",
+        "name": "Seq_Hotel",
+        "type": "obsmat",
+        "lstm": 1
+    },
+
+    "lstm": {
+        "n_in": 1,
+        "n_out": 1
+    }
+}
