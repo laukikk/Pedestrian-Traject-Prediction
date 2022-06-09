@@ -19,10 +19,22 @@ def findMissingFrames(df):
     return missing
 '''
 
-def getData(data, type):
+def getData(path: str, type = "obsmat"):
+    """
+    Get data that can be fed into a machine learning model
+
+    Arguments:
+        path (string) -- path of the folder of the data to be processed
+        type (string) -- type of data (eg. obsmat)
+    Returns:
+        Preprocessed pandas DataFrame
+    """
+
     if type == "obsmat":
-        hotel_obsmat = data['datasets']['seq_hotel'] + '/' + data['datasets']['type'] + ".txt"
-        df = pd.read_csv(hotel_obsmat, delimiter=r"\s+", header = None)
+        obsmat = path + "/" + type + ".txt"
+        name = path.split("/")[-1]
+
+        df = pd.read_csv(obsmat, delimiter=r"\s+", header = None)
         df.columns = ["frame_number", "pedestrian_ID", "pos_x", "pos_z", "pos_y", "v_x", "v_z", "v_y"]
 
         # Dropping irrelevent columns
@@ -36,19 +48,13 @@ def getData(data, type):
         # Columns Type Casting
         df = df.astype({'frame_number': int, 'pedestrian_ID' : int})
 
-        df.to_csv(f"datasets/csvs/{data['datasets']['name']}.csv", index=False)
-
-        ### Converting to LSTM suited data
-        if (data['datasets']['lstm']):
-            lstm = data['lstm']
-            df_lstm = series_to_supervised(df, lstm['n_in'], lstm['n_out'])
-            df_lstm.to_csv(f"datasets/csvs/lstms/{data['datasets']['name']}.csv", index=False)
-
-
-
+        df.to_csv(f"datasets/csvs/{name}.csv", index=False)
+        return df
 
     else:
-        print("Invlaid Type")
+        print("Invalid Type")
+        return None
+        
 
 def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
     """
@@ -61,6 +67,7 @@ def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
     Returns:
     Pandas DataFrame of series framed for supervised learning.
     """
+
     n_vars = 1 if type(data) is list else data.shape[1]
     df = DataFrame(data)
     cols, names = list(), list()
@@ -83,8 +90,47 @@ def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
         agg.dropna(inplace=True)
     return agg
 
-if __name__ == "__main__":
-    f = open('data.json')
-    data = json.load(f)
 
-    getData(data, "obsmat")
+def getModelData(df, lstm_data):
+    """
+    Get data that can be fed into a machine learning model
+
+    Arguments:
+        df (Pandas DataFrame) -- df of the position coords
+    Returns:
+        Pandas DataFrame of series framed for supervised learning.
+    """
+
+    # Grouping the DataFrame and dropping peds with less data
+    pos_df = df.drop(['v_x', 'v_y'], axis = 1)
+    pos_grp = pos_df.groupby('pedestrian_ID')
+
+    for name, group in pos_grp:
+        if len(group) <= lstm_data['window_size'] + lstm_data['no_of_forecasts']:
+            pos_df = pos_df.drop(pos_grp.get_group(name).index)
+    pos_grp = pos_df.groupby('pedestrian_ID')
+
+    df_lstm = pd.DataFrame()
+    
+    for name, group in pos_grp:
+        pos_cols = group[['pos_x', 'pos_y']]
+        pos_cols_converted = series_to_supervised(
+            pos_cols, 
+            lstm_data['window_size'],
+            lstm_data['no_of_forecasts']
+        )
+        
+        df_lstm = pd.concat([df_lstm, pos_cols_converted])
+        
+    df_lstm = df_lstm.dropna()
+    df_lstm.to_csv(f"datasets/csvs/lstms/seq.csv", index=False)
+
+    return df_lstm
+
+
+if __name__ == "__main__":
+    file = open('data.json')
+    json_data = json.load(file)
+
+    dfRaw = getData(json_data['datasets']['seq_hotel'])
+    # dfLSTM = getModelData(dfRaw, json_data)

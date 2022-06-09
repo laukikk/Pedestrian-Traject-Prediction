@@ -6,14 +6,18 @@ import seaborn as sns
 import pandas as pd
 import pygame
 import time
-from constants import *
+import json
+
 import functions as f
+import models as f
 
-# Getting the Data (unused)
-seq_hotel = "datasets/ewap_dataset/seq_hotel"
-seq_eth   = "datasets/ewap_dataset/seq_eth"
-hotel_obsmat = seq_hotel + "/obsmat.txt"
+# Get the data
+file = open('data.json')
+json_data = json.load(file)
 
-# Constants
-df = pd.read_csv('datasets\ewap_dataset\obsmat_hotel.csv')
+df_lstm = pd.DataFrame()
+for path in json_data['datasets']:
+    df_raw = f.getData(path)
+    df_converted = f.getModelData(df_raw, json_data['models']['lstms'])
+    df_lstm = pd.concat([df_lstm, df_converted])
 

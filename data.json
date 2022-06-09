@@ -1,15 +1,14 @@
 {
     "datasets": {
         "seq_hotel": "datasets/ewap_dataset/seq_hotel",
-        "seq_eth": "datasets/ewap_dataset/seq_eth",
-        "dataset": "datasets/ewap_dataset/seq_hotel",
-        "name": "Seq_Hotel",
-        "type": "obsmat",
-        "lstm": 1
+        "seq_eth": "datasets/ewap_dataset/seq_eth"
     },
 
-    "lstm": {
-        "n_in": 1,
-        "n_out": 1
+    "models": {
+        "lstm": {
+            "window_size": 5,
+            "no_of_forecasts": 1
+        }
     }
+    
 }
