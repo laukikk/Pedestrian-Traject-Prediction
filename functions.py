@@ -1,5 +1,7 @@
 import pandas as pd
 import json
+import numpy as np
+import matplotlib.pyplot as plt
 
 from pandas import DataFrame
 from pandas import concat
@@ -19,13 +21,16 @@ def findMissingFrames(df):
     return missing
 '''
 
+
+# Load the data from .txt and return & store csv file
 def getData(path: str, type = "obsmat"):
     """
-    Get data that can be fed into a machine learning model
+    Load the data from .txt and return & store csv file
 
-    Arguments:
-        path (string) -- path of the folder of the data to be processed
-        type (string) -- type of data (eg. obsmat)
+    Args:
+        - path (string) -- path of the folder of the data to be processed
+        - type (string) -- type of data (eg. obsmat)
+
     Returns:
         Preprocessed pandas DataFrame
     """
@@ -54,18 +59,21 @@ def getData(path: str, type = "obsmat"):
     else:
         print("Invalid Type")
         return None
-        
 
+
+# Convert normal series into a series suitable for LSTMs
 def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
     """
-    Frame a time series as a supervised learning dataset.
-    Arguments:
-        data: Sequence of observations as a list or NumPy array.
-        n_in: Number of lag observations as input (X).
-        n_out: Number of observations as output (y).
-        dropnan: Boolean whether or not to drop rows with NaN values.
+    Convert normal series into a series suitable for LSTMs
+
+    Args:
+        - data (Pandas DataFrame) -- Sequence of observations as a list or NumPy array.
+        - n_in (int)              -- Number of lag observations as input (X).
+        - n_out (int)             -- Number of observations as output (y).
+        - dropnan (int)           -- Boolean whether or not to drop rows with NaN values.
+
     Returns:
-    Pandas DataFrame of series framed for supervised learning.
+        Pandas DataFrame of series framed for supervised learning.
     """
 
     n_vars = 1 if type(data) is list else data.shape[1]
@@ -91,12 +99,14 @@ def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
     return agg
 
 
+# Get data that can be fed into a machine learning model
 def getModelData(df, lstm_data):
     """
     Get data that can be fed into a machine learning model
 
-    Arguments:
-        df (Pandas DataFrame) -- df of the position coords
+    Args:
+        - df (Pandas DataFrame) -- df of the position coords
+
     Returns:
         Pandas DataFrame of series framed for supervised learning.
     """
@@ -126,6 +136,66 @@ def getModelData(df, lstm_data):
     df_lstm.to_csv(f"datasets/csvs/lstms/seq.csv", index=False)
 
     return df_lstm
+
+
+# Creates a forecast of the trajectory of the pedestrian
+def getForecast(model, df, window_size=3):
+  """
+  Creates a forecast of the trajectory of the pedestria
+
+  Args:
+    - model (tensorflow sequential) -- the trained model with 2 output tensors
+    - df (pandas dataframe)         -- the part of the dataframe on which the predictions are to be made
+    - size_of_prediction (int)      -- dimension of the prediction
+    - window_size (int)             -- size of the window
+
+  Returns:
+    Numpy array with the predictions of the data
+
+  Note:
+    the prediction is expected to have only one pair of coordinates
+  """
+
+  series = []
+  forecasts = []
+  len_of_df = len(df)
+  size_of_prediction = 2
+
+  try:
+    for i in range(window_size):
+      for j in range(size_of_prediction):
+        series.append(df.iloc[i][j])
+  except IndexError:
+    print(f"Length of the dataframe={len(df)} is smaller than the window_size={window_size}. Add more data or reduce the window_size")
+
+  for i in range(len_of_df-window_size):
+    predict = np.array(series[-window_size*size_of_prediction:])[np.newaxis]
+    forecast = model.predict(predict[-window_size*size_of_prediction:][np.newaxis])
+    forecasts.append(forecast[0])
+    for j in range(size_of_prediction):
+      series.append(forecast[0][j])
+
+  return np.array(forecasts)
+
+
+# Draws the predictions of the data
+def drawPredictions(df, forecasts, window_size):
+    """
+    Draws the predictions of the data
+
+    Args:
+    - df (pandas dataframe) -- the part of the dataframe on which the predictions were made
+    - forecasts (array of int) -- all the predictions from make_forecast()
+    """
+    x_val = [val[0] for val in forecasts]
+    y_val = [val[1] for val in forecasts]
+
+    b = plt.scatter(np.array(df.iloc[:window_size,0]), np.array(df.iloc[:window_size,1]), c='b')
+    c = plt.scatter(np.array(df.iloc[window_size:,0]), np.array(df.iloc[window_size:,1]), c='c')
+    o = plt.scatter(x_val, y_val, c='orange')
+    plt.legend((b, c, o), ('before', 'after', 'prediction'))
+    plt.show()
+
 
 
 if __name__ == "__main__":
