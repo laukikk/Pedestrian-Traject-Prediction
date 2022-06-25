@@ -2,9 +2,14 @@ import pandas as pd
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import pygame
+import time
+import tensorflow as tf
 
 from pandas import DataFrame
 from pandas import concat
+
+from constants import *
 
 '''
 def findMissingFrames(df):
@@ -139,7 +144,7 @@ def getModelData(df, lstm_data):
 
 
 # Creates a forecast of the trajectory of the pedestrian
-def getForecast(model, df, window_size=3):
+def getForecast(model, df, window_size=5):
   """
   Creates a forecast of the trajectory of the pedestria
 
@@ -170,8 +175,10 @@ def getForecast(model, df, window_size=3):
 
   for i in range(len_of_df-window_size):
     predict = np.array(series[-window_size*size_of_prediction:])[np.newaxis]
+
     forecast = model.predict(predict[-window_size*size_of_prediction:][np.newaxis])
     forecasts.append(forecast[0])
+
     for j in range(size_of_prediction):
       series.append(forecast[0][j])
 
@@ -197,10 +204,73 @@ def drawPredictions(df, forecasts, window_size):
     plt.show()
 
 
+# Draws the prediction on pygame
+def drawFastPath(screen, pastCoords):
+    """
+    Draws the already covered trajectory
+
+    Args:
+    - screen (pygame screen)   -- the screen of the pygame UI
+    - pastCoords (numpy array) -- the coords of the trajectory that was already covered
+    """
+    for x, y in pastCoords:
+        pygame.draw.rect(screen, kObjColor, pygame.Rect(x, y, kObjSize[0], kObjSize[1]))
+        pygame.display.flip()
+
+def drawSlowPath(screen, predictedCoords, futureCoords):
+    """
+    Draws the predicted and original trajectory for the next 5 timestamps
+
+    Args:
+    - screen (pygame screen)        -- the screen of the pygame UI
+    - predictedCoords (numpy array) -- the coords of the predicted trajectory
+    - originalCoords (numpy array)  -- the coords of the original trajectory
+    """
+    for pred, fut in zip(predictedCoords, futureCoords):
+        time.sleep(0.3)
+        pygame.draw.rect(screen, kOgObjColor, pygame.Rect(fut[0], fut[1], kObjSize[0], kObjSize[1]))
+        pygame.draw.rect(screen, kPredObjColor, pygame.Rect(pred[0], pred[1], kObjSize[0], kObjSize[1]))
+        pygame.display.flip()
+
+
+def drawPredictionPath(screen, model, originalCoords):
+    """
+    Draws the trajectory using pygame
+
+    Args:
+    - screen (pygame screen)        -- the screen of the pygame UI
+    - model (TensorFlow model)      -- the model that would be used to make the predictions
+    - originalCoords (numpy array)  -- the coords of the original trajectory
+
+    PS: only draws the prediction of the trajectories with more than 5 steps, others are just returned
+    """
+    print("siuuuuuuuuuuuuu")
+    if(len(originalCoords) > 5):
+        for i in range(5, len(originalCoords)):
+            # multiply the values by a constant to show on the pygame
+            pastCoords = np.array([[c*30+200 for c in coord] for coord in originalCoords[:i]])
+            futureCoords = np.array([[c*30+200 for c in coord] for coord in originalCoords[i:]])
+
+            predictedCoords = getForecast(model, pd.DataFrame(originalCoords[i-5:]))
+            predictedCoords = np.array([[c*30+200 for c in coord] for coord in predictedCoords])
+
+            if(len(predictedCoords) > 5):
+                futureCoords = futureCoords[:5]
+                predictedCoords = predictedCoords[:5]
+            
+            drawFastPath(screen, pastCoords)
+            drawSlowPath(screen, predictedCoords, futureCoords)
+            screen.fill(kBgColor)
+
 
 if __name__ == "__main__":
     file = open('data.json')
     json_data = json.load(file)
 
-    dfRaw = getData(json_data['datasets']['seq_hotel'])
+    # dfRaw = getData(json_data['datasets']['seq_hotel'])
     # dfLSTM = getModelData(dfRaw, json_data)
+
+    
+    good = [0,5,6,7,8,9,10,]
+    drop = [1,2,3,4,14,15]
+    
