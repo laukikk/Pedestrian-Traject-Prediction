@@ -10,6 +10,10 @@ from pandas import DataFrame
 from pandas import concat
 
 from constants import *
+import json
+
+file = open('data.json')
+json_data = json.load(file)
 
 '''
 def findMissingFrames(df):
@@ -205,6 +209,7 @@ def drawPredictions(df, forecasts, window_size):
 
 
 # Draws the prediction on pygame
+# Draws the already traversed trajectory
 def drawFastPath(screen, pastCoords):
     """
     Draws the already covered trajectory
@@ -217,9 +222,10 @@ def drawFastPath(screen, pastCoords):
         pygame.draw.rect(screen, kObjColor, pygame.Rect(x, y, kObjSize[0], kObjSize[1]))
         pygame.display.flip()
 
+# Draws the predicted and original trajectory for the next timestamps
 def drawSlowPath(screen, predictedCoords, futureCoords):
     """
-    Draws the predicted and original trajectory for the next 5 timestamps
+    Draws the predicted and original trajectory for the next timestamps
 
     Args:
     - screen (pygame screen)        -- the screen of the pygame UI
@@ -232,7 +238,7 @@ def drawSlowPath(screen, predictedCoords, futureCoords):
         pygame.draw.rect(screen, kPredObjColor, pygame.Rect(pred[0], pred[1], kObjSize[0], kObjSize[1]))
         pygame.display.flip()
 
-
+# Main function for drawing the complete trajectory
 def drawPredictionPath(screen, model, originalCoords):
     """
     Draws the trajectory using pygame
@@ -244,7 +250,6 @@ def drawPredictionPath(screen, model, originalCoords):
 
     PS: only draws the prediction of the trajectories with more than 5 steps, others are just returned
     """
-    print("siuuuuuuuuuuuuu")
     if(len(originalCoords) > 5):
         for i in range(5, len(originalCoords)):
             # multiply the values by a constant to show on the pygame
@@ -261,6 +266,24 @@ def drawPredictionPath(screen, model, originalCoords):
             drawFastPath(screen, pastCoords)
             drawSlowPath(screen, predictedCoords, futureCoords)
             screen.fill(kBgColor)
+
+
+# Get the the distance and angle of the pedestrains near the current pedestrian
+def angle_between(p1, p2):
+    """
+    Calculates the angle between two points
+
+    Args:
+    - p1 (tuple)    -- Point 1
+    - p2 (tuple)    -- Point 2
+
+    Returns:
+        Angle between the 2 points
+    """
+    ang1 = np.arctan2(*p1[::-1])
+    ang2 = np.arctan2(*p2[::-1])
+    return np.rad2deg((ang1 - ang2) % (2 * np.pi))
+
 
 
 if __name__ == "__main__":

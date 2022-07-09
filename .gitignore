@@ -1,3 +1,7 @@
 # Videos
 *.avi
 *.mp4
+
+# Python    
+__pycache__/
+logs/
