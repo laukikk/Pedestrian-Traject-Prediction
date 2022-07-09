@@ -8,7 +8,8 @@
         "lstm": {
             "window_size": 5,
             "no_of_forecasts": 1,
-            "no_of_predictions": 8
+            "no_of_predictions": 8,
+            "size_of_prediction": 4
         }
     }
     

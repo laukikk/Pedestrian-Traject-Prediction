@@ -14,6 +14,7 @@ import json
 
 file = open('data.json')
 json_data = json.load(file)
+json_lstm = json_data['models']['lstm']
 
 '''
 def findMissingFrames(df):
@@ -168,7 +169,7 @@ def getForecast(model, df, window_size=5):
   series = []
   forecasts = []
   len_of_df = len(df)
-  size_of_prediction = 2
+  size_of_prediction = json_lstm["size_of_prediction"]
 
   try:
     for i in range(window_size):
@@ -180,7 +181,7 @@ def getForecast(model, df, window_size=5):
   for i in range(len_of_df-window_size):
     predict = np.array(series[-window_size*size_of_prediction:])[np.newaxis]
 
-    forecast = model.predict(predict[-window_size*size_of_prediction:][np.newaxis])
+    forecast = model.predict(predict[-window_size*size_of_prediction:][np.newaxis])[0][:2][np.newaxis]
     forecasts.append(forecast[0])
 
     for j in range(size_of_prediction):
